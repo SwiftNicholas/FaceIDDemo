@@ -45,8 +45,8 @@ struct ContentView: View {
         var error: NSError?
         
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            // This will display on the first use of faceID
-            let reason = "FaceID is a secure way to login"
+            // This will display on the first use of faceID OR TouchID
+            let reason = "We use your  is a secure way to login"
             
             context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) {success, authError in
                 DispatchQueue.main.async {
@@ -54,13 +54,12 @@ struct ContentView: View {
                         self.isUnlocked = true
                     } else {
                         // If FaceID fails this should gracefully hand the user back to the login page.
-                        print("failed")
                     }
                 }
             }
             
         } else {
-            // This is the place to put additional biometric methods such as touchID
+            // This is the fallback if the user is not enrolled or declined biometric ID
         }
     }
 
