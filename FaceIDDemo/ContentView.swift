@@ -7,15 +7,64 @@
 
 import SwiftUI
 
+
+import LocalAuthentication
+
+
+// This view can be the first view and it does not need to contain any content, the background can simpley be black. Additional views can be presented from here and this can serve as the single biometric authenication and returning user authentication handling file for any size app.
+
 struct ContentView: View {
+    // Authenitcation State
+    @State private var isUnlocked = false
+    
     var body: some View {
-        Text("Hello, world!")
-            .padding()
+        // Demo text to show when state changes
+        VStack {
+            if self.isUnlocked {
+                Text("Unlocked")
+            } else {
+                Text("Locked")
+            }
+        }
+        // Used on first launch, will not retrigger when resuming from background
+        .onAppear(perform: authenticate)
+        
+        // When the user opens the app again (soft launch)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)){_ in
+            authenticate()
+        }
+        
+        // If user dismisses app and then quickly reopens the background event will not be completed. It will keep the user authenticated. This requires est. 1.5 secs (iPhone 12 Physical device tested)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)){_ in
+            self.isUnlocked = false
+        }
     }
+    
+    func authenticate() {
+        let context = LAContext()
+        var error: NSError?
+        
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            // This will display on the first use of faceID
+            let reason = "FaceID is a secure way to login"
+            
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) {success, authError in
+                DispatchQueue.main.async {
+                    if success {
+                        self.isUnlocked = true
+                    } else {
+                        // If FaceID fails this should gracefully hand the user back to the login page.
+                        print("failed")
+                    }
+                }
+            }
+            
+        } else {
+            // This is the place to put additional biometric methods such as touchID
+        }
+    }
+
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
-}
+
+   
