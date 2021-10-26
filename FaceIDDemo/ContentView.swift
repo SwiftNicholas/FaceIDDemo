@@ -15,16 +15,30 @@ import LocalAuthentication
 
 struct ContentView: View {
     // Authenitcation State
-    @State private var isUnlocked = false
+    @State private var appState: AppState = .notLaunched
+    
+    enum AppState {
+        case unlocked
+        case locked
+        case unableToUseBiometrics
+        case notLaunched
+    }
     
     var body: some View {
         // Demo text to show when state changes
         VStack {
-            if self.isUnlocked {
+            
+            switch self.appState {
+            case .unlocked:
                 Text("Unlocked")
-            } else {
+            case .locked:
                 Text("Locked")
+            case .unableToUseBiometrics:
+                Text("Failed to access biometrics")
+            case .notLaunched:
+                Text("Welcome please login")
             }
+          
         }
         // Used on first launch, will not retrigger when resuming from background
         .onAppear(perform: authenticate)
@@ -36,7 +50,7 @@ struct ContentView: View {
         
         // If user dismisses app and then quickly reopens the background event will not be completed. It will keep the user authenticated. This requires est. 1.5 secs (iPhone 12 Physical device tested)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)){_ in
-            self.isUnlocked = false
+            self.appState = .unlocked
         }
     }
     
@@ -51,15 +65,15 @@ struct ContentView: View {
             context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) {success, authError in
                 DispatchQueue.main.async {
                     if success {
-                        self.isUnlocked = true
+                        self.appState = .unlocked
                     } else {
-                        // If FaceID fails this should gracefully hand the user back to the login page.
+                        self.appState = .unableToUseBiometrics
                     }
                 }
             }
             
         } else {
-            // This is the fallback if the user is not enrolled or declined biometric ID
+            self.appState = .unableToUseBiometrics
         }
     }
 
